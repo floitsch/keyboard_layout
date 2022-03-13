@@ -16,6 +16,9 @@ Change the default layout:
 sudo localectl --no-convert set-x11-keymap us_shifted,us dell101 ,dvorak
 ```
 
+## Notes
+KDE doesn't recognize the new layout.
+
 ## Links
 https://medium.com/@damko/a-simple-humble-but-comprehensive-guide-to-xkb-for-linux-6f1ad5e13450
 http://who-t.blogspot.com/2020/09/user-specific-xkb-configuration-putting.html
