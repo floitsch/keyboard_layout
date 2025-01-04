@@ -20,7 +20,7 @@ md5sums=('4cfa726b4f987f3f5877419faa5b2f9c'
          '340790b137f5fea2452a646d7c00be91'
          '7af99ffd1f0422cf4c37bcc88b79987e'
          '20258133f4319699fc37cab174f27830'
-         'c8915c33f8ce448e8568a250b6953424')
+         '0ecfd98eebedf5574cb7ed5ae0b7d1f8')
 
 package() {
 	mkdir -p "$pkgdir/usr/share/X11/xkb/symbols/"

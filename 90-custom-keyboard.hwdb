@@ -5,5 +5,6 @@ evdev:input:b0011v0001p0001eAB83*
  KEYBOARD_KEY_3a=rightbrace # Map caps to =\+
  KEYBOARD_KEY_e3=grave # Map function key to ~/`
  KEYBOARD_KEY_1d=leftmeta # Map ctrl to windows key
- KEYBOARD_KEY_db=tab # Map Windows key to tab
+ KEYBOARD_KEY_db=leftalt # Map Windows key to Alt
+ KEYBOARD_KEY_38=tab # Map ALT key to tab
  KEYBOARD_KEY_1b=backslash # Map =/+ to \/|
