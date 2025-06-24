@@ -23,14 +23,14 @@ md5sums=('4cfa726b4f987f3f5877419faa5b2f9c'
          '0ecfd98eebedf5574cb7ed5ae0b7d1f8')
 
 package() {
-	mkdir -p "$pkgdir/usr/share/X11/xkb/symbols/"
-	mkdir -p "$pkgdir/usr/share/X11/xkb/rules/"
-  mkdir -p "$pkgdir/etc/udev/hwdb.d/"
-	cp "$srcdir/us_shifted" "$pkgdir/usr/share/X11/xkb/symbols/"
-	cp "$srcdir/dv_shifted" "$pkgdir/usr/share/X11/xkb/symbols/"
-	cp "$srcdir/evdev_us_shifted.xml" "$pkgdir/usr/share/X11/xkb/rules/"
-	cp "$srcdir/evdev_dv_shifted.xml" "$pkgdir/usr/share/X11/xkb/rules/"
-  cp "$srcdir/90-custom-keyboard.hwdb" "$pkgdir/etc/udev/hwdb.d/"
+	mkdir -p "$pkgdir/usr/share/xkeyboard-config-2/symbols/"
+	mkdir -p "$pkgdir/usr/share/xkeyboard-config-2/rules/"
+	mkdir -p "$pkgdir/etc/udev/hwdb.d/"
+	cp "$srcdir/us_shifted" "$pkgdir/usr/share/xkeyboard-config-2/symbols/"
+	cp "$srcdir/dv_shifted" "$pkgdir/usr/share/xkeyboard-config-2/symbols/"
+	cp "$srcdir/evdev_us_shifted.xml" "$pkgdir/usr/share/xkeyboard-config-2/rules/"
+	cp "$srcdir/evdev_dv_shifted.xml" "$pkgdir/usr/share/xkeyboard-config-2/rules/"
+	cp "$srcdir/90-custom-keyboard.hwdb" "$pkgdir/etc/udev/hwdb.d/"
 }
 
 post_install() {
