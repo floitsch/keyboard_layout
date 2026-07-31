@@ -1,7 +1,7 @@
 # Maintainer: Florian Loitsch <florian@toit.io>
 pkgname=shift_layout
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="Customized keyboard layout shifting digits"
 arch=('x86_64')
 url="https://github.com/floitsch/keyboard_layout"
@@ -27,7 +27,7 @@ md5sums=('4cfa726b4f987f3f5877419faa5b2f9c'
          '7af99ffd1f0422cf4c37bcc88b79987e'
          '20258133f4319699fc37cab174f27830'
          'f60bb08fb582050c9e15f13f63cf283d'
-         '2e8fb1852f69a6129c8bf7774b56c16d'
+         '27b4db379371eea6de07f8984bd55b6b'
          'a64dcde4304d2e9eb0eba8bb944170c6')
 
 build() {

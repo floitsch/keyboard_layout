@@ -57,7 +57,10 @@ through virtual mouse and keyboard devices. Its back button behaves as follows:
 
 The forward button and all other mouse input pass through unchanged. If the
 service is stopped, its exclusive grab is released and the physical mouse works
-normally again.
+normally again. Some receivers expose several event nodes under the same
+`event-mouse` symlink. On startup and after a reconnect, the proxy verifies that
+the selected node provides pointer motion and otherwise finds the matching
+motion-capable node from the same physical interface.
 
 KWin identifies the scrolling button as `BTN_SIDE` (Linux input button 275).
 Enable button scrolling for the current device with:

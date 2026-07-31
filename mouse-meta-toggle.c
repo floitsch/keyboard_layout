@@ -3,6 +3,7 @@
 
 #define _GNU_SOURCE
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
@@ -279,6 +280,85 @@ static void destroy_virtual_device(int fd) {
   close(fd);
 }
 
+static bool has_pointer_motion(int fd) {
+  unsigned long rel_bits[NBITS(REL_MAX)] = {0};
+
+  if (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), rel_bits) < 0) {
+    return false;
+  }
+  return bit_is_set(rel_bits, REL_X) && bit_is_set(rel_bits, REL_Y);
+}
+
+static bool same_physical_device(
+    int fd, const struct input_id *expected_id, const char *expected_phys) {
+  struct input_id id = {0};
+  char phys[256] = {0};
+
+  if (ioctl(fd, EVIOCGID, &id) < 0 ||
+      ioctl(fd, EVIOCGPHYS(sizeof(phys)), phys) < 0) {
+    return false;
+  }
+  return id.bustype == expected_id->bustype &&
+         id.vendor == expected_id->vendor &&
+         id.product == expected_id->product &&
+         id.version == expected_id->version &&
+         strcmp(phys, expected_phys) == 0;
+}
+
+static int find_pointer_sibling(int reference_fd) {
+  struct input_id reference_id = {0};
+  char reference_phys[256] = {0};
+  DIR *directory = NULL;
+  int result = -1;
+
+  if (ioctl(reference_fd, EVIOCGID, &reference_id) < 0 ||
+      ioctl(reference_fd, EVIOCGPHYS(sizeof(reference_phys)),
+            reference_phys) < 0 ||
+      reference_phys[0] == '\0') {
+    return -1;
+  }
+
+  directory = opendir("/dev/input");
+  if (!directory) return -1;
+
+  for (struct dirent *entry = readdir(directory); entry;
+       entry = readdir(directory)) {
+    char path[sizeof("/dev/input/") + sizeof(entry->d_name)];
+    char *end = NULL;
+
+    if (strncmp(entry->d_name, "event", 5) != 0) continue;
+    (void)strtoul(entry->d_name + 5, &end, 10);
+    if (end == entry->d_name + 5 || *end != '\0') continue;
+
+    snprintf(path, sizeof(path), "/dev/input/%s", entry->d_name);
+    int candidate = open(path, O_RDONLY | O_CLOEXEC);
+    if (candidate < 0) continue;
+    if (has_pointer_motion(candidate) &&
+        same_physical_device(candidate, &reference_id, reference_phys)) {
+      fprintf(stderr, "using motion-capable sibling %s\n", path);
+      result = candidate;
+      break;
+    }
+    close(candidate);
+  }
+
+  closedir(directory);
+  return result;
+}
+
+static int open_mouse_device(const char *device) {
+  int reference_fd = open(device, O_RDONLY | O_CLOEXEC);
+  if (reference_fd < 0) return -1;
+  if (has_pointer_motion(reference_fd)) return reference_fd;
+
+  fprintf(stderr, "%s has no pointer motion; checking sibling event nodes\n",
+          device);
+  int pointer_fd = find_pointer_sibling(reference_fd);
+  close(reference_fd);
+  if (pointer_fd < 0) errno = ENODEV;
+  return pointer_fd;
+}
+
 static int run_proxy(const char *device, unsigned threshold) {
   struct gesture_state state = {0};
   struct input_id mouse_id = {0};
@@ -288,7 +368,7 @@ static int run_proxy(const char *device, unsigned threshold) {
   int result = -1;
   uint32_t last_scan = 0;
 
-  input_fd = open(device, O_RDONLY | O_CLOEXEC);
+  input_fd = open_mouse_device(device);
   if (input_fd < 0) return -1;
   if (ioctl(input_fd, EVIOCGRAB, 1) < 0) {
     perror("EVIOCGRAB");
