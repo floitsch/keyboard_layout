@@ -1,0 +1,16 @@
+refresh_hwdb() {
+  systemd-hwdb update
+  udevadm trigger --subsystem-match=input
+}
+
+post_install() {
+  refresh_hwdb
+}
+
+post_upgrade() {
+  refresh_hwdb
+}
+
+post_remove() {
+  refresh_hwdb
+}

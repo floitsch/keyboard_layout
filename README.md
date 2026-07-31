@@ -44,3 +44,38 @@ sudo udevadm trigger
 
 ### Links
 https://wiki.archlinux.org/title/Map_scancodes_to_keycodes#Remap_specific_device
+
+## Mouse side buttons on KDE Wayland
+
+The hwdb file maps the back button of the `1ea7:0066` 2.4G Mouse to Left Meta.
+Hold it while dragging with the left mouse button to move a window, or with the
+right mouse button to resize it. These are KWin's default window actions; the
+modifier can also be selected under System Settings → Window Management →
+Window Behavior → Window Actions.
+
+Reconnect the mouse (or log out and back in) once after installing the package
+in a running desktop session, so KWin sees its added keyboard capability.
+
+The forward button can be used for system-wide hold-to-scroll. KWin identifies
+it as `BTN_EXTRA` (Linux input button 276). Enable it for the current session
+with:
+
+```sh
+busctl --user set-property org.kde.KWin \
+  /org/kde/KWin/InputDevice/event9 org.kde.KWin.InputDevice \
+  scrollButton u 276
+busctl --user set-property org.kde.KWin \
+  /org/kde/KWin/InputDevice/event9 org.kde.KWin.InputDevice \
+  scrollOnButtonDown b true
+```
+
+KWin persists both properties in `~/.config/kcminputrc`. The `event9` name can
+change after reboot; find the current one with:
+
+```sh
+qdbus6 org.kde.KWin /org/kde/KWin/InputDevice \
+  org.kde.KWin.InputDeviceManager.ListPointers
+```
+
+Unlike Windows autoscroll, libinput's native button scrolling works only while
+the button is held. KWin does not currently expose libinput's button-lock mode.
