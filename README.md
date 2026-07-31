@@ -45,37 +45,46 @@ sudo udevadm trigger
 ### Links
 https://wiki.archlinux.org/title/Map_scancodes_to_keycodes#Remap_specific_device
 
-## Mouse side buttons on KDE Wayland
+## Mouse gestures on KDE Wayland
 
-The hwdb file maps the back button of the `1ea7:0066` 2.4G Mouse to Left Meta.
-Hold it while dragging with the left mouse button to move a window, or with the
-right mouse button to resize it. These are KWin's default window actions; the
-modifier can also be selected under System Settings → Window Management →
-Window Behavior → Window Actions.
+The `shift-layout-mouse` system service proxies the `1ea7:0066` 2.4G Mouse
+through virtual mouse and keyboard devices. Its back button behaves as follows:
 
-Reconnect the mouse (or log out and back in) once after installing the package
-in a running desktop session, so KWin sees its added keyboard capability.
+- Click without moving to toggle Left Meta.
+- Hold and move beyond a small threshold to lock system-wide scrolling. Meta is
+  released automatically when scrolling starts.
+- Click again to leave scrolling mode.
 
-The forward button can be used for system-wide hold-to-scroll. KWin identifies
-it as `BTN_EXTRA` (Linux input button 276). Enable it for the current session
-with:
+The forward button and all other mouse input pass through unchanged. If the
+service is stopped, its exclusive grab is released and the physical mouse works
+normally again.
+
+KWin identifies the scrolling button as `BTN_SIDE` (Linux input button 275).
+Enable button scrolling for the current device with:
 
 ```sh
 busctl --user set-property org.kde.KWin \
   /org/kde/KWin/InputDevice/event9 org.kde.KWin.InputDevice \
-  scrollButton u 276
+  scrollButton u 275
 busctl --user set-property org.kde.KWin \
   /org/kde/KWin/InputDevice/event9 org.kde.KWin.InputDevice \
   scrollOnButtonDown b true
 ```
 
 KWin persists both properties in `~/.config/kcminputrc`. The `event9` name can
-change after reboot; find the current one with:
+change after reboot and the proxy adds another pointer device. Find the current
+devices with:
 
 ```sh
 qdbus6 org.kde.KWin /org/kde/KWin/InputDevice \
   org.kde.KWin.InputDeviceManager.ListPointers
 ```
 
-Unlike Windows autoscroll, libinput's native button scrolling works only while
-the button is held. KWin does not currently expose libinput's button-lock mode.
+The movement threshold is the last argument in
+`shift-layout-mouse.service` and defaults to 12 raw motion units. Check the
+service and its current Meta/scroll state transitions with:
+
+```sh
+systemctl status shift-layout-mouse.service
+journalctl -u shift-layout-mouse.service
+```

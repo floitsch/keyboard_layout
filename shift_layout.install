@@ -3,14 +3,28 @@ refresh_hwdb() {
   udevadm trigger --subsystem-match=input
 }
 
+enable_mouse_service() {
+  systemctl daemon-reload
+  systemctl enable shift-layout-mouse.service
+}
+
 post_install() {
   refresh_hwdb
+  enable_mouse_service
+  systemctl start shift-layout-mouse.service
 }
 
 post_upgrade() {
   refresh_hwdb
+  enable_mouse_service
+  systemctl restart shift-layout-mouse.service
+}
+
+pre_remove() {
+  systemctl disable --now shift-layout-mouse.service || true
 }
 
 post_remove() {
+  systemctl daemon-reload
   refresh_hwdb
 }
