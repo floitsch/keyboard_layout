@@ -3,6 +3,78 @@
 This repository contains my files and notes on how to add a new keyboard layout
 to my Linux setup.
 
+## Android physical keyboard
+
+The `android` directory builds a tiny, permission-free Android package that
+provides two selectable physical-keyboard layouts:
+
+- **US shifted + laptop key remaps**
+- **Dvorak shifted + laptop key remaps**
+
+The package uses Android's native Key Character Map overlay mechanism (the same
+mechanism used by ExKeyMo). It is not an input method, has no user interface,
+and does not run in the background. One overlay handles both layers: it maps the
+physical keys first and then maps key/modifier combinations to characters.
+The layouts intentionally omit Android's locale and layout-type hints so newer
+Android versions offer both choices for every enabled input-method language.
+
+### Build and install
+
+Java 17 or newer and an Android SDK are required. From this repository:
+
+```sh
+cd android
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+The debug APK is self-signed and installable. On the Android device, connect the
+Bluetooth keyboard and open **Settings → System → Keyboard → Physical keyboard**
+(the path varies by vendor). Select the keyboard. On newer Android versions,
+first select the active input-method language row, open **Layouts**, scroll past
+the built-in layouts, and choose one of the entries from **Shifted layouts**.
+
+The mappings reproduce the final effect of `90-custom-keyboard.hwdb` followed by
+`us_shifted` or `dv_shifted`:
+
+| Physical key | Android result |
+| --- | --- |
+| Escape | Caps Lock |
+| Backtick | Escape |
+| Tab | Left Control |
+| Caps Lock | `]`/`}` in US, `=`/`+` in Dvorak |
+| Fn, if reported as `KEY_FN` | Backtick/tilde |
+| Left Control | Left Meta |
+| Left Meta/Windows | Left Alt |
+| Left Alt | Tab |
+| Right bracket | Backslash/bar |
+
+The digit row produces `!@#$%^&*<>` without Shift and `1234567890` with Shift.
+Shift-comma and Shift-period produce parentheses.
+
+### Check the Bluetooth keyboard's scan codes
+
+Standard evdev scan codes are used for all ordinary keys. Fn keys are special:
+Bluetooth keyboard firmware often consumes Fn and sends only the modified key,
+so Android may never see a standalone Fn press. With USB debugging enabled, use
+this while pressing Fn and the other remapped keys:
+
+```sh
+adb shell getevent -lt
+```
+
+The supplied layout maps evdev `KEY_FN` (decimal scan code 464) to backtick. If
+Fn produces no event, that mapping cannot be implemented in an Android layout;
+choose another physical key for `GRAVE`. If it produces a different `EV_KEY`
+code, replace `464` in both `.kcm` files with that code converted from
+hexadecimal to decimal, rebuild, and reinstall the APK.
+
+The Android sources are in:
+
+- `android/app/src/main/res/raw/us_shifted.kcm`
+- `android/app/src/main/res/raw/dvorak_shifted.kcm`
+- `android/app/src/main/res/xml/keyboard_layouts.xml`
+
 ## xkbmap
 
 Some minor changes, like shifting numbers and moving parens.

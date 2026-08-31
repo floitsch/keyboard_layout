@@ -1,0 +1,130 @@
+# US shifted layout plus the laptop's physical-key remaps.
+# Scan codes are Linux evdev key codes, as exposed by Android's input stack.
+
+type OVERLAY
+
+# Physical-key remaps from 90-custom-keyboard.hwdb, expressed as their final
+# Android meaning.  KEY_FN (464) only works if the Bluetooth keyboard reports it.
+map key 1 CAPS_LOCK
+map key 41 ESCAPE
+map key 15 CTRL_LEFT
+map key 58 RIGHT_BRACKET
+map key 464 GRAVE
+map key 29 META_LEFT
+map key 125 ALT_LEFT
+map key 56 TAB
+map key 27 BACKSLASH
+
+key GRAVE {
+    label:                              '`'
+    base:                               '`'
+    shift:                              '~'
+}
+
+key 1 {
+    label:                              '1'
+    base:                               '!'
+    shift:                              '1'
+}
+
+key 2 {
+    label:                              '2'
+    base:                               '@'
+    shift:                              '2'
+}
+
+key 3 {
+    label:                              '3'
+    base:                               '#'
+    shift:                              '3'
+}
+
+key 4 {
+    label:                              '4'
+    base:                               '$'
+    shift:                              '4'
+}
+
+key 5 {
+    label:                              '5'
+    base:                               '%'
+    shift:                              '5'
+}
+
+key 6 {
+    label:                              '6'
+    base:                               '^'
+    shift:                              '6'
+}
+
+key 7 {
+    label:                              '7'
+    base:                               '&'
+    shift:                              '7'
+}
+
+key 8 {
+    label:                              '8'
+    base:                               '*'
+    shift:                              '8'
+}
+
+key 9 {
+    label:                              '9'
+    base:                               '<'
+    shift:                              '9'
+}
+
+key 0 {
+    label:                              '0'
+    base:                               '>'
+    shift:                              '0'
+}
+
+key MINUS {
+    label:                              '-'
+    base:                               '-'
+    shift:                              '_'
+}
+
+key EQUALS {
+    label:                              '='
+    base:                               '='
+    shift:                              '+'
+}
+
+key LEFT_BRACKET {
+    label:                              '['
+    base:                               '['
+    shift:                              '{'
+}
+
+key RIGHT_BRACKET {
+    label:                              ']'
+    base:                               ']'
+    shift:                              '}'
+}
+
+key BACKSLASH {
+    label:                              '\\'
+    base:                               '\\'
+    shift:                              '|'
+}
+
+key COMMA {
+    label:                              ','
+    base:                               ','
+    shift:                              '('
+}
+
+key PERIOD {
+    label:                              '.'
+    base:                               '.'
+    shift:                              ')'
+}
+
+key SLASH {
+    label:                              '/'
+    base:                               '/'
+    shift:                              '?'
+}

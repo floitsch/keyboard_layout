@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<keyboard-layouts xmlns:android="http://schemas.android.com/apk/res/android">
+    <keyboard-layout
+        android:name="us_shifted"
+        android:label="@string/layout_us_name"
+        android:keyboardLayout="@raw/us_shifted" />
+    <keyboard-layout
+        android:name="dvorak_shifted"
+        android:label="@string/layout_dvorak_name"
+        android:keyboardLayout="@raw/dvorak_shifted" />
+</keyboard-layouts>

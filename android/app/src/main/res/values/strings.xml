@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shifted physical keyboard layouts</string>
+    <string name="layout_collection_name">Shifted layouts</string>
+    <string name="layout_us_name">US shifted + laptop key remaps</string>
+    <string name="layout_dvorak_name">Dvorak shifted + laptop key remaps</string>
+</resources>
