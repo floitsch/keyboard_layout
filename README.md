@@ -1,7 +1,217 @@
-# Customized Keyboard Layout
+# Customized keyboard layouts and mouse gestures
 
-This repository contains my files and notes on how to add a new keyboard layout
-to my Linux setup.
+This repository contains shifted US and Dvorak keyboard layouts for Linux and
+Android, device-specific Linux keyboard remaps, and a mouse gesture service for
+KDE Wayland.
+
+Both layouts put `!@#$%^&*<>` on the digit row without Shift and `1234567890`
+with Shift. Shift-comma and Shift-period produce parentheses.
+
+## Linux installation (Arch Linux)
+
+From the repository root, build and install the package as a regular user
+(with `base-devel` installed):
+
+```sh
+makepkg -si
+```
+
+The package installs:
+
+- The `us_shifted` and `dv_shifted` XKB layouts and their XML fragments under
+  `/usr/share/xkeyboard-config-2/`.
+- `90-custom-keyboard.hwdb` under `/etc/udev/hwdb.d/`.
+- The mouse proxy at `/usr/lib/shift_layout/mouse-meta-toggle` and the system
+  unit `shift-layout-mouse.service`.
+
+The install hook rebuilds the hardware database, reapplies input-device rules,
+and **enables and starts the mouse service automatically**. Upgrades restart
+it. Layout selection and KDE button-scrolling configuration are separate steps
+below.
+
+## Linux keyboard layouts (XKB)
+
+For the current X11 session, select either layout:
+
+```sh
+setxkbmap us_shifted
+# Or:
+setxkbmap dv_shifted
+```
+
+For example, configure shifted US with standard Dvorak as a second layout in the
+system X11 defaults:
+
+```sh
+sudo localectl --no-convert set-x11-keymap us_shifted,us dell101 ,dvorak
+```
+
+Use `dv_shifted` as the first layout instead if you want shifted Dvorak.
+`--no-convert` leaves the console keymap unchanged.
+
+`setxkbmap` is for X11. Configure the layout in the compositor for Wayland.
+The package installs separate XML fragments but does not merge them into the
+main XKB layout registry, so the layouts may not appear in KDE's layout picker.
+
+### References
+
+- [Adding a custom XKB layout](https://medium.com/@damko/a-simple-humble-but-comprehensive-guide-to-xkb-for-linux-6f1ad5e13450)
+- [User-specific XKB configuration](http://who-t.blogspot.com/2020/09/user-specific-xkb-configuration-putting.html)
+- [Custom keyboard layouts in X11 and Wayland](https://meesha.blog/2021/custom-keyboard-layout-in-x11-and-wayland.html)
+- [From xmodmap to XKB on Wayland](https://blog.stigok.com/2020/10/27/from-x11-xmodmap-to-wayland-xkb-custom-keyboard-layout.html)
+
+## Linux physical-key remaps (udev hwdb)
+
+`90-custom-keyboard.hwdb` remaps Escape, Tab, Caps Lock, Fn, and the left
+modifier keys before XKB translates them. The keyboard entry matches
+`evdev:input:b0011v0001p0001eAB83*`; it is specific to the original laptop,
+not a rule for all keyboards. The physical-key mapping table in the Android
+section also describes the intended result on Linux.
+
+The mouse entry matches USB `1ea7:0066` and restores the back button to
+`BTN_SIDE`, replacing the direct Meta mapping used by older package versions.
+The service now handles the mouse gestures.
+
+Package installation applies these rules automatically. To install them
+manually, or reapply them after editing:
+
+```sh
+sudo install -Dm644 90-custom-keyboard.hwdb /etc/udev/hwdb.d/90-custom-keyboard.hwdb
+sudo systemd-hwdb update
+sudo udevadm trigger --subsystem-match=input
+```
+
+Use `sudo evtest` to inspect a device's scan codes and key events before adapting
+the keyboard match and mappings for another keyboard. See the
+[ArchWiki scancode remapping guide](https://wiki.archlinux.org/title/Map_scancodes_to_keycodes#Remap_specific_device).
+
+## Mouse gestures on KDE Wayland
+
+The `shift-layout-mouse` system service proxies the `1ea7:0066` 2.4G Mouse
+through virtual mouse and keyboard devices. Its back button behaves as follows:
+
+- Click with little or no movement to toggle Left Meta (held until toggled off).
+- Hold and move to the motion threshold to lock system-wide scrolling. Meta is
+  released automatically when scrolling starts; releasing the button keeps
+  scrolling active.
+- Click again to leave scrolling mode.
+
+The forward button and ordinary pointer, wheel, and button input pass through.
+Stopping the service releases its exclusive grab so the physical mouse works
+normally again. The proxy retries while the mouse is disconnected. On startup
+and after a reconnect, it verifies that the selected event node provides pointer
+motion and otherwise finds a matching motion-capable node from the same physical
+interface.
+
+### Install and start the service
+
+On Arch Linux, `makepkg -si` installs and starts the service as described above.
+To re-enable an already installed service:
+
+```sh
+sudo systemctl enable --now shift-layout-mouse.service
+```
+
+For a manual service-only installation on a Linux system with systemd, a C
+compiler, and Linux input/uinput headers, run these commands from the repository
+root:
+
+```sh
+build_dir=$(mktemp -d)
+cc -std=c11 -Wall -Wextra -Werror -o "$build_dir/mouse-meta-toggle" mouse-meta-toggle.c
+"$build_dir/mouse-meta-toggle" --self-test
+sudo install -Dm755 "$build_dir/mouse-meta-toggle" /usr/lib/shift_layout/mouse-meta-toggle
+sudo install -Dm644 shift-layout-mouse.service /etc/systemd/system/shift-layout-mouse.service
+rm -r "$build_dir"
+sudo systemctl daemon-reload
+sudo systemctl enable --now shift-layout-mouse.service
+```
+
+If upgrading from the old direct-Meta mouse remap, also install and refresh the
+hwdb file using the commands above. The service runs as root to access the
+physical input device and `/dev/uinput`; it is a system unit, so do not use
+`systemctl --user` for it. If the journal reports that `/dev/uinput` is missing,
+load the module with `sudo modprobe uinput` and restart the service.
+
+### Enable scrolling in KDE
+
+The proxy holds `BTN_SIDE` (Linux input button 275) to request scrolling. KWin
+must be configured to turn that button into scrolling on the virtual pointer.
+The settings below use [KWin's input-device D-Bus properties](https://github.com/KDE/kwin/blob/master/src/backends/libinput/device.h).
+Run these commands as your desktop user after the service is running and the
+mouse is connected.
+
+First list the pointer devices:
+
+```sh
+qdbus6 org.kde.KWin /org/kde/KWin/InputDevice \
+  org.kde.KWin.InputDeviceManager.ListPointers
+```
+
+For a candidate event node, inspect its name and kernel path:
+
+```sh
+pointer=/org/kde/KWin/InputDevice/event9 # Replace event9 with a current event node.
+busctl --user get-property org.kde.KWin "$pointer" org.kde.KWin.InputDevice name
+udevadm info --query=path --name=/dev/input/"${pointer##*/}"
+```
+
+Choose the virtual mouse: it copies the physical mouse's name, but its kernel
+path contains `/devices/virtual/input/`. Then configure that pointer:
+
+```sh
+busctl --user set-property org.kde.KWin "$pointer" \
+  org.kde.KWin.InputDevice scrollButton u 275
+busctl --user set-property org.kde.KWin "$pointer" \
+  org.kde.KWin.InputDevice scrollOnButtonDown b true
+```
+
+KWin persists these properties in `~/.config/kcminputrc`. Event numbers can
+change after reboot or a service restart; rediscover the node before running
+these commands again.
+
+### Configuration and troubleshooting
+
+The default device is
+`/dev/input/by-id/usb-1ea7_2.4G_Mouse-if01-event-mouse`. The second argument to
+the executable is the motion threshold, defaulting to 12 accumulated raw motion
+units across both axes. A larger value requires more movement to enter scrolling
+mode.
+
+To change the device path or threshold, create a systemd override:
+
+```sh
+sudo systemctl edit shift-layout-mouse.service
+```
+
+For example, set the threshold to 20 with:
+
+```ini
+[Service]
+ExecStart=
+ExecStart=/usr/lib/shift_layout/mouse-meta-toggle /dev/input/by-id/usb-1ea7_2.4G_Mouse-if01-event-mouse 20
+```
+
+Apply the change and inspect the service and its Meta/scroll state transitions:
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl restart shift-layout-mouse.service
+systemctl status shift-layout-mouse.service
+journalctl -u shift-layout-mouse.service -b
+```
+
+An active service can still be waiting for the mouse. Look for the `proxying`
+message in the journal to confirm it opened the device. If clicks toggle Meta
+but movement does not scroll, check the KWin settings on the virtual pointer.
+
+To stop the proxy and keep it disabled across reboots:
+
+```sh
+sudo systemctl disable --now shift-layout-mouse.service
+```
+
+A package upgrade enables and starts it again through the install hook.
 
 ## Android physical keyboard
 
@@ -20,7 +230,9 @@ Android versions offer both choices for every enabled input-method language.
 
 ### Build and install
 
-Java 17 or newer and an Android SDK are required. From this repository:
+Java 17 or newer, an Android SDK with platform 36, and `adb` are required.
+Set `ANDROID_HOME` to the SDK directory or set `sdk.dir` in
+`android/local.properties`. From this repository:
 
 ```sh
 cd android
@@ -74,92 +286,3 @@ The Android sources are in:
 - `android/app/src/main/res/raw/us_shifted.kcm`
 - `android/app/src/main/res/raw/dvorak_shifted.kcm`
 - `android/app/src/main/res/xml/keyboard_layouts.xml`
-
-## xkbmap
-
-Some minor changes, like shifting numbers and moving parens.
-
-### Steps
-Use the PKGBUILD to install. Alternatively look at the package step in it.
-
-You can switch to the layout with
-```
-setxkbmap us_shifted
-```
-
-Change the default layout:
-```
-sudo localectl --no-convert set-x11-keymap us_shifted,us dell101 ,dvorak
-```
-
-### Notes
-KDE doesn't recognize the new layout.
-
-### Links
-https://medium.com/@damko/a-simple-humble-but-comprehensive-guide-to-xkb-for-linux-6f1ad5e13450
-http://who-t.blogspot.com/2020/09/user-specific-xkb-configuration-putting.html
-https://meesha.blog/2021/custom-keyboard-layout-in-x11-and-wayland.html
-https://blog.stigok.com/2020/10/27/from-x11-xmodmap-to-wayland-xkb-custom-keyboard-layout.html
-
-## udev
-Moves the escape, tab, caps lock, ... using udev rules.
-
-`sudo evtest` to find scan values and actions
-
-### Steps
-These are already run by the PKGBUILD.
-```
-sudo cp 90-custom-keyboard.hwdb /etc/udev/hwdb.d
-sudo systemd-hwdb update
-sudo udevadm trigger
-```
-
-### Links
-https://wiki.archlinux.org/title/Map_scancodes_to_keycodes#Remap_specific_device
-
-## Mouse gestures on KDE Wayland
-
-The `shift-layout-mouse` system service proxies the `1ea7:0066` 2.4G Mouse
-through virtual mouse and keyboard devices. Its back button behaves as follows:
-
-- Click without moving to toggle Left Meta.
-- Hold and move beyond a small threshold to lock system-wide scrolling. Meta is
-  released automatically when scrolling starts.
-- Click again to leave scrolling mode.
-
-The forward button and all other mouse input pass through unchanged. If the
-service is stopped, its exclusive grab is released and the physical mouse works
-normally again. Some receivers expose several event nodes under the same
-`event-mouse` symlink. On startup and after a reconnect, the proxy verifies that
-the selected node provides pointer motion and otherwise finds the matching
-motion-capable node from the same physical interface.
-
-KWin identifies the scrolling button as `BTN_SIDE` (Linux input button 275).
-Enable button scrolling for the current device with:
-
-```sh
-busctl --user set-property org.kde.KWin \
-  /org/kde/KWin/InputDevice/event9 org.kde.KWin.InputDevice \
-  scrollButton u 275
-busctl --user set-property org.kde.KWin \
-  /org/kde/KWin/InputDevice/event9 org.kde.KWin.InputDevice \
-  scrollOnButtonDown b true
-```
-
-KWin persists both properties in `~/.config/kcminputrc`. The `event9` name can
-change after reboot and the proxy adds another pointer device. Find the current
-devices with:
-
-```sh
-qdbus6 org.kde.KWin /org/kde/KWin/InputDevice \
-  org.kde.KWin.InputDeviceManager.ListPointers
-```
-
-The movement threshold is the last argument in
-`shift-layout-mouse.service` and defaults to 12 raw motion units. Check the
-service and its current Meta/scroll state transitions with:
-
-```sh
-systemctl status shift-layout-mouse.service
-journalctl -u shift-layout-mouse.service
-```
