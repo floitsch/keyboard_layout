@@ -1,0 +1,15 @@
+Source: shift-layout
+Section: x11
+Priority: optional
+Maintainer: Florian Loitsch <florian@toit.io>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://github.com/floitsch/keyboard_layout
+
+Package: shift-layout
+Architecture: all
+Depends: ${misc:Depends}, systemd, udev, xkb-data
+Description: shifted US and Dvorak keyboard layouts
+ Installs custom XKB layouts with unshifted punctuation on the digit row and
+ hardware-database remaps for the original Carbon X1 and a Dell Precision 5490.

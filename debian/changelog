@@ -1,0 +1,5 @@
+shift-layout (1.0.0-1) unstable; urgency=medium
+
+  * Add Debian packaging for the shifted XKB layouts and laptop remaps.
+
+ -- Florian Loitsch <florian@toit.io>  Wed, 16 Sep 2026 18:00:00 +0200

@@ -1,0 +1,12 @@
+# Dell Precision 5490 built-in keyboard. This model's Fn key is handled by
+# firmware and does not report a standalone key event.
+evdev:atkbd:dmi:bvn*:bvr*:bd*:svnDellInc.:pnPrecision5490:*
+ KEYBOARD_KEY_01=capslock # Map Esc to Caps Lock.
+ KEYBOARD_KEY_29=esc # Map tilde/backtick to Escape.
+ KEYBOARD_KEY_0f=leftctrl # Map Tab to Control.
+ KEYBOARD_KEY_3a=rightbrace # Map Caps Lock to =/+ with dv_shifted.
+ KEYBOARD_KEY_e3=reserved # Do not inherit the original laptop's Fn mapping.
+ KEYBOARD_KEY_1d=grave # Map left Control to ~/`.
+ KEYBOARD_KEY_db=leftalt # Map the Windows key to Alt.
+ KEYBOARD_KEY_38=tab # Map left Alt to Tab.
+ KEYBOARD_KEY_1b=backslash # Map =/+ to \/|.

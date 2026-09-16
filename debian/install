@@ -1,0 +1,6 @@
+us_shifted usr/share/X11/xkb/symbols
+dv_shifted usr/share/X11/xkb/symbols
+evdev_us_shifted.xml usr/share/X11/xkb/rules
+evdev_dv_shifted.xml usr/share/X11/xkb/rules
+90-custom-keyboard.hwdb etc/udev/hwdb.d
+90-shift-layout-dell-precision-5490.hwdb etc/udev/hwdb.d

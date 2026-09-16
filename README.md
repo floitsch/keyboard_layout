@@ -20,7 +20,7 @@ The package installs:
 
 - The `us_shifted` and `dv_shifted` XKB layouts and their XML fragments under
   `/usr/share/xkeyboard-config-2/`.
-- `90-custom-keyboard.hwdb` under `/etc/udev/hwdb.d/`.
+- The Carbon and Dell keyboard hwdb files under `/etc/udev/hwdb.d/`.
 - The mouse proxy at `/usr/lib/shift_layout/mouse-meta-toggle` and the system
   unit `shift-layout-mouse.service`.
 
@@ -28,6 +28,22 @@ The install hook rebuilds the hardware database, reapplies input-device rules,
 and **enables and starts the mouse service automatically**. Upgrades restart
 it. Layout selection and KDE button-scrolling configuration are separate steps
 below.
+
+## Linux installation (Debian and Ubuntu)
+
+The Debian package contains the keyboard layouts and the Carbon and Dell hwdb
+rules, but not the optional mouse service. Build and install it from the
+repository root:
+
+```sh
+sudo apt install debhelper
+dpkg-buildpackage --no-sign --build=binary
+sudo apt install ../shift-layout_1.0.0-1_all.deb
+```
+
+Installing through the package keeps all copied files tracked by `dpkg`. The
+post-install hook rebuilds the hardware database and reapplies the input-device
+rules automatically.
 
 ## Linux keyboard layouts (XKB)
 
@@ -62,11 +78,24 @@ main XKB layout registry, so the layouts may not appear in KDE's layout picker.
 
 ## Linux physical-key remaps (udev hwdb)
 
-`90-custom-keyboard.hwdb` remaps Escape, Tab, Caps Lock, Fn, and the left
-modifier keys before XKB translates them. The keyboard entry matches
-`evdev:input:b0011v0001p0001eAB83*`; it is specific to the original laptop,
-not a rule for all keyboards. The physical-key mapping table in the Android
-section also describes the intended result on Linux.
+`90-custom-keyboard.hwdb` retains the original Carbon X1 remap. Its legacy
+input-device match is also reported by other AT keyboards, so
+`90-shift-layout-dell-precision-5490.hwdb` provides a later, DMI-scoped override
+for the Dell Precision 5490. Both files can be installed safely: the Dell rule
+does not match the Carbon, and it overrides every Carbon scan-code assumption
+that differs on the Dell.
+
+| Physical key | Carbon X1 result | Dell Precision 5490 result |
+| --- | --- | --- |
+| Escape | Caps Lock | Caps Lock |
+| Backtick | Escape | Escape |
+| Tab | Left Control | Left Control |
+| Caps Lock | `=`/`+` in Dvorak | `=`/`+` in Dvorak |
+| Fn | Backtick/tilde | Firmware-managed; no standalone event |
+| Left Control | Left Meta | Backtick/tilde |
+| Left Meta/Windows | Left Alt | Left Alt |
+| Left Alt | Tab | Tab |
+| Equals/plus | Backslash/pipe | Backslash/pipe |
 
 The mouse entry matches USB `1ea7:0066` and restores the back button to
 `BTN_SIDE`, replacing the direct Meta mapping used by older package versions.
@@ -77,6 +106,8 @@ manually, or reapply them after editing:
 
 ```sh
 sudo install -Dm644 90-custom-keyboard.hwdb /etc/udev/hwdb.d/90-custom-keyboard.hwdb
+sudo install -Dm644 90-shift-layout-dell-precision-5490.hwdb \
+  /etc/udev/hwdb.d/90-shift-layout-dell-precision-5490.hwdb
 sudo systemd-hwdb update
 sudo udevadm trigger --subsystem-match=input
 ```
