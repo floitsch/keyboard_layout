@@ -186,15 +186,11 @@ static int create_virtual_mouse(int input_fd) {
   unsigned long rel_bits[NBITS(REL_MAX)] = {0};
   unsigned long prop_bits[NBITS(INPUT_PROP_MAX)] = {0};
   struct input_id id = {0};
-  char name[UINPUT_MAX_NAME_SIZE] = "2.4G Mouse";
   int fd = -1;
 
   if (ioctl(input_fd, EVIOCGID, &id) < 0) {
     perror("EVIOCGID");
     return -1;
-  }
-  if (ioctl(input_fd, EVIOCGNAME(sizeof(name)), name) < 0) {
-    strcpy(name, "2.4G Mouse");
   }
   if (ioctl(input_fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), key_bits) < 0 ||
       ioctl(input_fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), rel_bits) < 0) {
@@ -238,7 +234,7 @@ static int create_virtual_mouse(int input_fd) {
   }
 
   struct uinput_setup setup = {.id = id};
-  snprintf(setup.name, sizeof(setup.name), "%s", name);
+  snprintf(setup.name, sizeof(setup.name), "Shift Layout Mouse Proxy");
   if (ioctl(fd, UI_DEV_SETUP, &setup) < 0 ||
       ioctl(fd, UI_DEV_CREATE) < 0) {
     perror("create virtual mouse");

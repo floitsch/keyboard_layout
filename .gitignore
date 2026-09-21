@@ -8,3 +8,4 @@
 /debian/shift-layout/
 /debian/*.debhelper
 /debian/*.substvars
+/mouse-meta-toggle

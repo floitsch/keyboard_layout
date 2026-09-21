@@ -13,3 +13,11 @@ Depends: ${misc:Depends}, systemd, udev, xkb-data
 Description: shifted US and Dvorak keyboard layouts
  Installs custom XKB layouts with unshifted punctuation on the digit row and
  hardware-database remaps for the original Carbon X1 and a Dell Precision 5490.
+
+Package: shift-layout-mouse
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, shift-layout (= ${source:Version})
+Description: stateful mouse gesture proxy for shift-layout
+ Proxies the supported 2.4G mouse through virtual mouse and keyboard devices,
+ turning its back button into persistent Meta and button-scrolling gestures.
+ The hardened system service runs as root to access input devices and uinput.

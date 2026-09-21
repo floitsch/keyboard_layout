@@ -31,19 +31,23 @@ below.
 
 ## Linux installation (Debian and Ubuntu)
 
-The Debian package contains the keyboard layouts and the Carbon and Dell hwdb
-rules, but not the optional mouse service. Build and install it from the
-repository root:
+The main Debian package contains the keyboard layouts and the Carbon and Dell
+hwdb rules. The mouse proxy is a separate optional package. Build and install
+them from the repository root:
 
 ```sh
 sudo apt install debhelper
 dpkg-buildpackage --no-sign --build=binary
-sudo apt install ../shift-layout_1.0.0-1_all.deb
+sudo apt install ../shift-layout_1.0.0-2_all.deb
+# Optional mouse gesture proxy:
+sudo apt install ../shift-layout-mouse_1.0.0-2_*.deb
 ```
 
 Installing through the package keeps all copied files tracked by `dpkg`. The
 post-install hook rebuilds the hardware database and reapplies the input-device
-rules automatically.
+rules automatically. The optional mouse package installs an enabled root system
+service because exclusive input-device and `/dev/uinput` access cannot be
+provided safely by a user service.
 
 ## Linux keyboard layouts (XKB)
 
@@ -168,6 +172,22 @@ load the module with `sudo modprobe uinput` and restart the service.
 
 The proxy holds `BTN_SIDE` (Linux input button 275) to request scrolling. KWin
 must be configured to turn that button into scrolling on the virtual pointer.
+
+#### X11
+
+The packages install `90-shift-layout-mouse.conf`, which configures button 8
+scrolling for the virtual `Shift Layout Mouse Proxy` on the next X server
+start. To configure the current session without logging out, find the proxy and
+set its libinput properties directly:
+
+```sh
+xinput list --short
+xinput set-prop "Shift Layout Mouse Proxy" "libinput Scroll Method Enabled" 0 0 1
+xinput set-prop "Shift Layout Mouse Proxy" "libinput Button Scrolling Button" 8
+```
+
+#### Wayland
+
 The settings below use [KWin's input-device D-Bus properties](https://github.com/KDE/kwin/blob/master/src/backends/libinput/device.h).
 Run these commands as your desktop user after the service is running and the
 mouse is connected.
@@ -187,8 +207,8 @@ busctl --user get-property org.kde.KWin "$pointer" org.kde.KWin.InputDevice name
 udevadm info --query=path --name=/dev/input/"${pointer##*/}"
 ```
 
-Choose the virtual mouse: it copies the physical mouse's name, but its kernel
-path contains `/devices/virtual/input/`. Then configure that pointer:
+Choose `Shift Layout Mouse Proxy`; its kernel path also contains
+`/devices/virtual/input/`. Then configure that pointer:
 
 ```sh
 busctl --user set-property org.kde.KWin "$pointer" \
