@@ -6,6 +6,8 @@
 /debian/debhelper-build-stamp
 /debian/files
 /debian/shift-layout/
+/debian/shift-layout-mouse/
+/debian/widget-stage/
 /debian/*.debhelper
 /debian/*.substvars
 /mouse-meta-toggle

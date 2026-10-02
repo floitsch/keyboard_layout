@@ -5,6 +5,8 @@ After=systemd-udevd.service
 
 [Service]
 Type=simple
+RuntimeDirectory=shift-layout-mouse
+RuntimeDirectoryMode=0755
 ExecStart=/usr/lib/shift_layout/mouse-meta-toggle /dev/input/by-id/usb-1ea7_2.4G_Mouse-if01-event-mouse 12
 Restart=on-failure
 RestartSec=1

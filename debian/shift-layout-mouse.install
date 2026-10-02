@@ -1,3 +1,4 @@
 mouse-meta-toggle usr/lib/shift_layout
 shift-layout-mouse.service usr/lib/systemd/system
 90-shift-layout-mouse.conf usr/share/X11/xorg.conf.d
+debian/widget-stage/org.floitsch.shiftlayout.status usr/share/plasma/plasmoids

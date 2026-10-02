@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -25,6 +26,26 @@
 #define NBITS(max) (((max) / BITS_PER_LONG) + 1U)
 
 static volatile sig_atomic_t stop_requested;
+
+// Optional status output: systemd provides a writable runtime directory.
+// Atomic replacement keeps readers from seeing a partial state transition.
+static void publish_status(const char *status) {
+  const char *directory = getenv("RUNTIME_DIRECTORY");
+  if (!directory || !*directory) return;
+  char path[4096], temporary[4096];
+  if (snprintf(path, sizeof(path), "%s/state", directory) >= (int)sizeof(path) ||
+      snprintf(temporary, sizeof(temporary), "%s/state.tmp", directory) >=
+          (int)sizeof(temporary)) return;
+  int fd = open(temporary, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+  if (fd < 0) { perror("open status"); return; }
+  bool ok = fchmod(fd, 0644) == 0 &&
+      dprintf(fd, "%ld %s\n", (long)getpid(), status) > 0;
+  if (close(fd) < 0) ok = false;
+  if (!ok || rename(temporary, path) < 0) {
+    perror("publish status");
+    unlink(temporary);
+  }
+}
 
 enum back_gesture {
   BACK_IDLE,
@@ -167,10 +188,12 @@ static int apply_actions(
   if (actions->meta >= 0) {
     if (emit_key(keyboard_fd, KEY_LEFTMETA, actions->meta) < 0) return -1;
     fprintf(stderr, "Meta %s\n", actions->meta ? "locked" : "released");
+    publish_status(actions->meta ? "meta" : "idle");
   }
   if (actions->scroll >= 0) {
     if (emit_key(mouse_fd, BTN_SIDE, actions->scroll) < 0) return -1;
     fprintf(stderr, "scroll %s\n", actions->scroll ? "locked" : "released");
+    publish_status(actions->scroll ? "scroll" : "idle");
   }
   return 0;
 }
@@ -381,6 +404,7 @@ static int run_proxy(const char *device, unsigned threshold) {
   if (keyboard_fd < 0) goto cleanup;
   usleep(100000);
   fprintf(stderr, "proxying %s with motion threshold %u\n", device, threshold);
+  publish_status("idle");
 
   while (!stop_requested) {
     struct input_event events[64];
@@ -443,6 +467,7 @@ static int run_proxy(const char *device, unsigned threshold) {
   }
 
 cleanup:
+  publish_status("waiting");
   if (state.meta_locked && keyboard_fd >= 0) {
     emit_key(keyboard_fd, KEY_LEFTMETA, 0);
   }
@@ -496,8 +521,10 @@ int main(int argc, char **argv) {
   sigaction(SIGTERM, &action, NULL);
 
   while (!stop_requested) {
+    publish_status("waiting");
     run_proxy(device, threshold);
     if (!stop_requested) wait_before_retry();
   }
+  publish_status("stopped");
   return 0;
 }

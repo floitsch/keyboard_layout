@@ -221,6 +221,39 @@ KWin persists these properties in `~/.config/kcminputrc`. Event numbers can
 change after reboot or a service restart; rediscover the node before running
 these commands again.
 
+### Thin panel indicator (Plasma 5 and 6)
+
+The **Mouse Mode Indicator** widget displays a small rectangular strip for the
+mouse service: orange for locked Meta, blue for locked scrolling, dim gray when
+inactive, and red when the mouse or service is unavailable. Hover for the status.
+It updates every 100 ms without reading keyboard input or requiring desktop
+administrator privileges.
+
+After installing the updated mouse service, install the widget for your desktop:
+
+```sh
+sh plasma/install-widget.sh
+```
+
+The installer detects Plasma using the available `kpackagetool6` or
+`kpackagetool5`; pass `--plasma-version 5` or `--plasma-version 6` to override.
+Plasma 6 requires its `plasma5support` executable data engine.
+The Arch package includes the Plasma 6 widget; the Debian build selects the
+version using the build machine's package tool (defaults to Plasma 5).
+
+Enter panel edit mode, add **Mouse Mode Indicator**, and drag it to the very top
+of your left panel. In its configuration, adjust **Strip thickness** from 1 to
+64 pixels (default 6). On vertical panels this sets its height, and the strip
+fills the available panel width. On horizontal panels it sets the width instead.
+Measurements follow desktop scaling; the panel theme may add surrounding spacing.
+The strip keeps its space when inactive so other widgets do not move.
+
+The service publishes its PID and mode atomically in
+`/run/shift-layout-mouse/state`. Its runtime directory is readable by the desktop
+and writable only by the root service; systemd removes it when the service stops.
+The widget also checks that the publishing process still exists. Restart the
+updated service to enable status publishing; an older service shows red.
+
 ### Configuration and troubleshooting
 
 The default device is

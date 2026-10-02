@@ -1,0 +1,22 @@
+{
+  "KPlugin": {
+    "Id": "org.floitsch.shiftlayout.status",
+    "Name": "Mouse Mode Indicator",
+    "Description": "Thin panel strip for sticky Meta and scrolling",
+    "Icon": "input-mouse",
+    "Version": "1.0",
+    "License": "Unlicense",
+    "Authors": [
+      {
+        "Name": "Florian Loitsch"
+      }
+    ],
+    "Category": "System Information",
+    "ServiceTypes": [
+      "Plasma/Applet"
+    ]
+  },
+  "KPackageStructure": "Plasma/Applet",
+  "X-Plasma-API": "declarativeappletscript",
+  "X-Plasma-MainScript": "ui/main.qml"
+}
