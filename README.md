@@ -226,8 +226,8 @@ these commands again.
 The **Mouse Mode Indicator** widget displays a small rectangular strip for the
 mouse service: orange for locked Meta, blue for locked scrolling, dim gray when
 inactive, and red when the mouse or service is unavailable. Hover for the status.
-It updates every 100 ms without reading keyboard input or requiring desktop
-administrator privileges.
+It updates as soon as the service changes mode, without polling, reading
+keyboard input or requiring desktop administrator privileges.
 
 After installing the updated mouse service, install the widget for your desktop:
 
@@ -251,8 +251,10 @@ The strip keeps its space when inactive so other widgets do not move.
 The service publishes its PID and mode atomically in
 `/run/shift-layout-mouse/state`. Its runtime directory is readable by the desktop
 and writable only by the root service; systemd removes it when the service stops.
-The widget also checks that the publishing process still exists. Restart the
-updated service to enable status publishing; an older service shows red.
+The widget runs `mouse-meta-toggle --watch MODE` as the desktop user, which waits
+with inotify and a pidfd until the published mode differs from `MODE` or the
+publishing process exits, then prints the new mode. Restart the updated service
+to enable status publishing; an older service shows red.
 
 ### Configuration and troubleshooting
 

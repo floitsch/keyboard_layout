@@ -8,13 +8,16 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/inotify.h>
 #include <sys/ioctl.h>
+#include <sys/pidfd.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -22,6 +25,7 @@
 #define DEFAULT_DEVICE "/dev/input/by-id/usb-1ea7_2.4G_Mouse-if01-event-mouse"
 #define DEFAULT_MOTION_THRESHOLD 12U
 #define BACK_SCAN_CODE 0x90004U
+#define STATUS_DIRECTORY "/run/shift-layout-mouse"
 #define BITS_PER_LONG (sizeof(unsigned long) * 8U)
 #define NBITS(max) (((max) / BITS_PER_LONG) + 1U)
 
@@ -44,6 +48,97 @@ static void publish_status(const char *status) {
   if (!ok || rename(temporary, path) < 0) {
     perror("publish status");
     unlink(temporary);
+  }
+}
+
+// Reads the published mode into |mode|, or "unavailable" when the publishing
+// process is gone. On success |*pidfd| refers to the publisher.
+static void read_status(char *mode, size_t size, int *pidfd) {
+  char buffer[64] = {0};
+  *pidfd = -1;
+  snprintf(mode, size, "unavailable");
+  int fd = open(STATUS_DIRECTORY "/state", O_RDONLY | O_CLOEXEC);
+  if (fd < 0) return;
+  ssize_t length = read(fd, buffer, sizeof(buffer) - 1);
+  close(fd);
+  if (length <= 0) return;
+
+  char *end = NULL;
+  long pid = strtol(buffer, &end, 10);
+  if (end == buffer || *end != ' ' || pid <= 0) return;
+  char *word = end + 1;
+  size_t word_length = strspn(word, "abcdefghijklmnopqrstuvwxyz");
+  if (word_length == 0 || word_length >= size || word[word_length] != '\n') {
+    return;
+  }
+  // A readable pidfd means the publisher exited but was not yet reaped.
+  int process = pidfd_open((pid_t)pid, 0);
+  struct pollfd exited = {.fd = process, .events = POLLIN};
+  if (process < 0 || poll(&exited, 1, 0) != 0) {
+    if (process >= 0) close(process);
+    return;
+  }
+  memcpy(mode, word, word_length);
+  mode[word_length] = '\0';
+  *pidfd = process;
+}
+
+// Status client for the panel widget: blocks until the published mode differs
+// from |known|, prints it, and exits. The service publishes by atomic rename,
+// so inotify on the runtime directory, plus the publisher's pidfd for crashes,
+// report every change without polling.
+static int watch_status(const char *known) {
+  int notify_fd = inotify_init1(IN_CLOEXEC);
+  if (notify_fd < 0) {
+    perror("inotify_init1");
+    return 1;
+  }
+  while (true) {
+    // Watch before reading so no change slips in between.
+    if (inotify_add_watch(notify_fd, STATUS_DIRECTORY,
+                          IN_MOVED_TO | IN_CLOSE_WRITE | IN_DELETE_SELF |
+                              IN_MOVE_SELF | IN_ONLYDIR) < 0) {
+      // systemd creates the directory when the service starts.
+      if (errno != ENOENT ||
+          inotify_add_watch(notify_fd, "/run",
+                            IN_CREATE | IN_MOVED_TO | IN_ONLYDIR) < 0) {
+        perror("inotify_add_watch");
+        return 1;
+      }
+    }
+    char mode[32];
+    int pidfd;
+    read_status(mode, sizeof(mode), &pidfd);
+    if (strcmp(mode, known) != 0) {
+      if (pidfd >= 0) close(pidfd);
+      printf("%s\n", mode);
+      return fflush(stdout) == 0 ? 0 : 1;
+    }
+
+    // Standard output reports POLLERR once the widget stops reading.
+    struct pollfd fds[] = {
+        {.fd = notify_fd, .events = POLLIN},
+        {.fd = STDOUT_FILENO, .events = 0},
+        {.fd = pidfd, .events = POLLIN},
+    };
+    int result;
+    do {
+      result = poll(fds, pidfd >= 0 ? 3 : 2, -1);
+    } while (result < 0 && errno == EINTR);
+    if (pidfd >= 0) close(pidfd);
+    if (result < 0) {
+      perror("poll");
+      return 1;
+    }
+    if (fds[1].revents & (POLLERR | POLLHUP)) return 0;
+    if (fds[0].revents & POLLIN) {
+      char events[4096]
+          __attribute__((aligned(__alignof__(struct inotify_event))));
+      if (read(notify_fd, events, sizeof(events)) < 0 && errno != EINTR) {
+        perror("read inotify");
+        return 1;
+      }
+    }
   }
 }
 
@@ -500,8 +595,14 @@ int main(int argc, char **argv) {
   unsigned threshold = DEFAULT_MOTION_THRESHOLD;
 
   if (argc == 2 && strcmp(argv[1], "--self-test") == 0) return self_test();
+  if (argc == 3 && strcmp(argv[1], "--watch") == 0) {
+    return watch_status(argv[2]);
+  }
   if (argc > 3) {
-    fprintf(stderr, "usage: %s [device [motion-threshold]]\n", argv[0]);
+    fprintf(stderr,
+            "usage: %s [device [motion-threshold]]\n"
+            "       %s --watch known-mode\n",
+            argv[0], argv[0]);
     return 2;
   }
   if (argc >= 2) device = argv[1];

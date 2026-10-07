@@ -24,38 +24,54 @@ Item {
     Plasmoid.toolTipMainText: root.description
     Plasmoid.preferredRepresentation: Plasmoid.fullRepresentation
 
-    PlasmaCore.DataSource {
-        id: statusSource
-        engine: "executable"
-        // Periodic engine polling is clamped to one second. Each fresh source
-        // executes immediately; disconnect it when the short read completes.
-        readonly property string command: "if read -r pid mode 2>/dev/null < /run/shift-layout-mouse/state && case $pid in ''|*[!0-9]*) false;; *) test -d /proc/$pid;; esac; then printf '%s' \"$mode\"; else printf unavailable; fi"
-        readonly property string instanceId: String(Math.random())
-        property int requestNumber: 0
-        property bool pending: false
-        connectedSources: []
-        interval: 0
-        function readStatus() {
-            if (pending) return;
-            pending = true;
-            connectSource(command + " # " + instanceId + "/" + (++requestNumber));
+    // The service binary's watch mode blocks until the published mode differs
+    // from the one passed in, so each result starts the next watch. A data
+    // source keeps a map entry for every source name it has seen, and reusing a
+    // name can return the engine's cached result; use a fresh data source with
+    // a unique name per watch instead.
+    readonly property string watchCommand: "/usr/lib/shift_layout/mouse-meta-toggle --watch "
+    readonly property string instanceId: String(Math.random())
+    property string reported: "none"
+    property int requestNumber: 0
+
+    function watch() {
+        watchComponent.createObject(root).connectSource(watchCommand + reported
+            + " # " + instanceId + "/" + (++requestNumber));
+    }
+
+    function handleStatus(data) {
+        var value = String(data["stdout"] || "").trim();
+        mode = ["meta", "scroll", "idle", "waiting"].indexOf(value) >= 0
+            ? value : "unavailable";
+        if (data["exit code"] === 0 && /^[a-z]+$/.test(value) && value !== reported) {
+            reported = value;
+            watch();
+        } else {
+            // Missing or outdated service binary: retry without spinning.
+            reported = "none";
+            retryTimer.start();
         }
-        onNewData: {
-            disconnectSource(sourceName);
-            pending = false;
-            var value = String(data["stdout"] || "").trim();
-            root.mode = ["meta", "scroll", "idle", "waiting"].indexOf(value) >= 0
-                ? value : "unavailable";
+    }
+
+    Component {
+        id: watchComponent
+        PlasmaCore.DataSource {
+            engine: "executable"
+            onNewData: {
+                disconnectSource(sourceName);
+                destroy();
+                root.handleStatus(data);
+            }
         }
     }
 
     Timer {
-        interval: 100
-        repeat: true
-        running: true
-        triggeredOnStart: true
-        onTriggered: statusSource.readStatus()
+        id: retryTimer
+        interval: 1000
+        onTriggered: root.watch()
     }
+
+    Component.onCompleted: watch()
 
     Rectangle {
         anchors.fill: parent
