@@ -1,0 +1,38 @@
+# Optional Dvorak keycodes for the Dell's internal keyboard. Select us_shifted
+# in the compositor so external keyboards keep shifted US. This runs after
+# 90-shift-layout-dell-precision-5490.hwdb and preserves its modifier remaps.
+# Do not select dv_shifted as well: that would translate Dvorak twice.
+evdev:atkbd:dmi:bvn*:bvr*:bd*:svnDellInc.:pnPrecision5490:*
+ KEYBOARD_KEY_0c=leftbrace
+ KEYBOARD_KEY_0d=rightbrace
+ KEYBOARD_KEY_10=apostrophe
+ KEYBOARD_KEY_11=comma
+ KEYBOARD_KEY_12=dot
+ KEYBOARD_KEY_13=p
+ KEYBOARD_KEY_14=y
+ KEYBOARD_KEY_15=f
+ KEYBOARD_KEY_16=g
+ KEYBOARD_KEY_17=c
+ KEYBOARD_KEY_18=r
+ KEYBOARD_KEY_19=l
+ KEYBOARD_KEY_1a=slash
+ KEYBOARD_KEY_1f=o
+ KEYBOARD_KEY_20=e
+ KEYBOARD_KEY_21=u
+ KEYBOARD_KEY_22=i
+ KEYBOARD_KEY_23=d
+ KEYBOARD_KEY_24=h
+ KEYBOARD_KEY_25=t
+ KEYBOARD_KEY_26=n
+ KEYBOARD_KEY_27=s
+ KEYBOARD_KEY_28=minus
+ KEYBOARD_KEY_2c=semicolon
+ KEYBOARD_KEY_2d=q
+ KEYBOARD_KEY_2e=j
+ KEYBOARD_KEY_2f=k
+ KEYBOARD_KEY_30=x
+ KEYBOARD_KEY_31=b
+ KEYBOARD_KEY_33=w
+ KEYBOARD_KEY_34=v
+ KEYBOARD_KEY_35=z
+ KEYBOARD_KEY_3a=equal

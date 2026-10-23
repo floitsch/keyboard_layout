@@ -5,7 +5,8 @@ set -e
 
 if [ "$1" = configure ]; then
     systemd-hwdb update
-    udevadm trigger --subsystem-match=input || true
+    udevadm control --reload || true
+    udevadm trigger --settle --subsystem-match=input || true
 fi
 
 exit 0

@@ -7,7 +7,9 @@
 /debian/files
 /debian/shift-layout/
 /debian/shift-layout-mouse/
+/debian/shift-layout-dell-dvorak/
 /debian/widget-stage/
 /debian/*.debhelper
 /debian/*.substvars
 /mouse-meta-toggle
+/dist/

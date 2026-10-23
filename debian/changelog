@@ -1,3 +1,16 @@
+shift-layout (1.0.0-3) unstable; urgency=medium
+
+  * Install layouts in the canonical xkeyboard-config-2 directory so custom
+    files no longer block xkb-data's directory-to-symlink migration.
+  * Require xkb-data with the new directory layout.
+  * Add an optional Dell Dvorak keycode package for mixed internal Dvorak and
+    external US keyboards under compositors with a shared keyboard layout.
+  * Reload udev's hardware database and wait for remaps to reach input devices.
+  * Ship the Plasma 6 mouse indicator explicitly and recommend its QML runtime.
+  * Use explicit signal parameters in the Plasma 6 status reader.
+
+ -- Florian Loitsch <florian@toit.io>  Fri, 23 Oct 2026 13:00:00 +0200
+
 shift-layout (1.0.0-2) unstable; urgency=medium
 
   * Add the optional mouse gesture proxy as a separate binary package.

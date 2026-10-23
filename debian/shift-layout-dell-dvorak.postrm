@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+# Refresh on removal too. A reboot resets keys no longer present in the hwdb.
+case "$1" in
+    remove|purge)
+        systemd-hwdb update
+        udevadm control --reload || true
+        udevadm trigger --settle --subsystem-match=input || true
+        ;;
+esac

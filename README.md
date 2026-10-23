@@ -31,6 +31,7 @@ below.
 
 ## Linux installation (Debian and Ubuntu)
 
+The Debian packages target Ubuntu 26.04 / xkb-data 2.46 or newer and Plasma 6.
 The main Debian package contains the keyboard layouts and the Carbon and Dell
 hwdb rules. The mouse proxy is a separate optional package. Build and install
 them from the repository root:
@@ -38,9 +39,9 @@ them from the repository root:
 ```sh
 sudo apt install debhelper
 dpkg-buildpackage --no-sign --build=binary
-sudo apt install ../shift-layout_1.0.0-2_all.deb
+sudo apt install ../shift-layout_1.0.0-3_all.deb
 # Optional mouse gesture proxy:
-sudo apt install ../shift-layout-mouse_1.0.0-2_*.deb
+sudo apt install ../shift-layout-mouse_1.0.0-3_*.deb
 ```
 
 Installing through the package keeps all copied files tracked by `dpkg`. The
@@ -48,6 +49,10 @@ post-install hook rebuilds the hardware database and reapplies the input-device
 rules automatically. The optional mouse package installs an enabled root system
 service because exclusive input-device and `/dev/uinput` access cannot be
 provided safely by a user service.
+
+Layouts are installed under `/usr/share/xkeyboard-config-2/`. The old
+`/usr/share/X11/xkb` path is now a compatibility symlink owned by `xkb-data`;
+shipping files there blocked the operating-system upgrade's symlink migration.
 
 ## Linux keyboard layouts (XKB)
 
@@ -72,6 +77,43 @@ Use `dv_shifted` as the first layout instead if you want shifted Dvorak.
 `setxkbmap` is for X11. Configure the layout in the compositor for Wayland.
 The package installs separate XML fragments but does not merge them into the
 main XKB layout registry, so the layouts may not appear in KDE's layout picker.
+
+For **shifted Dvorak internally and shifted US externally** on the Dell
+Precision 5490, install the optional internal-keyboard translation package:
+
+```sh
+sudo apt install ../shift-layout-dell-dvorak_1.0.0-3_all.deb
+```
+
+KWin uses one keyboard layout for all devices. This package translates only
+the Dell's internal keycodes to Dvorak before the compositor processes them.
+Configure shifted US in Plasma 6 Wayland and reload its keyboard configuration:
+
+```sh
+kwriteconfig6 --file kxkbrc --group Layout --key LayoutList --notify us_shifted
+kwriteconfig6 --file kxkbrc --group Layout --key VariantList --notify ''
+kwriteconfig6 --file kxkbrc --group Layout --key Use --type bool --notify true
+kwriteconfig6 --file kxkbrc --group Layout --key Model --notify pc105
+```
+
+The internal keyboard then produces shifted Dvorak, including the Dell modifier
+remaps, while external keyboards produce shifted US. Do not select `dv_shifted`
+with this optional package installed: that would translate the internal keys
+twice. To return to selecting Dvorak in XKB, remove the optional package and
+reboot so the kernel discards its previous scan-code mappings. Older X11
+device-specific configuration must also use `us_shifted` while this package is
+installed.
+The hardware remap also affects the internal keyboard at the login screen and
+console (the shifted punctuation still requires the desktop XKB layout).
+`setxkbmap` only affects X11 and cannot configure KWin's Wayland keyboard layout.
+The `--notify` option tells current KWin versions to reload immediately when a
+value changes. Log out and in if the configuration was already saved without
+notification.
+
+Check both keyboard mappings without modifying devices with
+`python3 tests/check-keyboards.py` (requires libxkbcommon, xkb-data and Linux
+input headers). It compares the internal translation against `dv_shifted` at
+both Shift levels and checks the external layout's punctuation and letters.
 
 ### References
 
@@ -217,6 +259,14 @@ busctl --user set-property org.kde.KWin "$pointer" \
   org.kde.KWin.InputDevice scrollOnButtonDown b true
 ```
 
+For left-handed buttons, select **Shift Layout Mouse Proxy** in KDE's Mouse
+settings, or set the same property directly:
+
+```sh
+busctl --user set-property org.kde.KWin "$pointer" \
+  org.kde.KWin.InputDevice leftHanded b true
+```
+
 KWin persists these properties in `~/.config/kcminputrc`. Event numbers can
 change after reboot or a service restart; rediscover the node before running
 these commands again.
@@ -238,8 +288,12 @@ sh plasma/install-widget.sh
 The installer detects Plasma using the available `kpackagetool6` or
 `kpackagetool5`; pass `--plasma-version 5` or `--plasma-version 6` to override.
 Plasma 6 requires its `plasma5support` executable data engine.
-The Arch package includes the Plasma 6 widget; the Debian build selects the
-version using the build machine's package tool (defaults to Plasma 5).
+The Arch and Debian packages include the Plasma 6 widget. After upgrading from
+Plasma 5, run the installer above to replace any old user-installed copy: it
+takes precedence over the system package. Use `--plasma-version 6` explicitly if
+both package tools are installed. Restart `plasma-plasmashell.service` with
+`systemctl --user restart plasma-plasmashell.service` to reload an existing panel
+widget after upgrading its files.
 
 Enter panel edit mode, add **Mouse Mode Indicator**, and drag it to the very top
 of your left panel. In its configuration, adjust **Strip thickness** from 1 to

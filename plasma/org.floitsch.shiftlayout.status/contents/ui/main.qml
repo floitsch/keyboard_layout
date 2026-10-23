@@ -58,7 +58,7 @@ PlasmoidItem {
         id: watchComponent
         Plasma5Support.DataSource {
             engine: "executable"
-            onNewData: {
+            onNewData: function(sourceName, data) {
                 disconnectSource(sourceName);
                 destroy();
                 root.handleStatus(data);

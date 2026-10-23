@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+if [ "$1" = configure ]; then
+    systemd-hwdb update
+    udevadm control --reload || true
+    udevadm trigger --settle --subsystem-match=input || true
+fi
